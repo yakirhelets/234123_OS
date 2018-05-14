@@ -58,3 +58,17 @@ int sys_get_logger_records(cs_log* user_mem) {
 	logger->index=0;
 	return numOfRecords;
 }
+
+int sys_start_lottery_scheduler() {
+
+	return 0;
+}
+
+int sys_start_orig_scheduler() {
+
+	return 0;
+}
+
+void sys_set_max_tickets(int max_tickets) {
+
+}
