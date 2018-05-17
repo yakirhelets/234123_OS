@@ -47,6 +47,7 @@ typedef struct {
 	int logger_status;
 	int size;
 	int index;
+	int n_tickets;
 } Logger;
 
 extern Logger* logger;

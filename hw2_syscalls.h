@@ -97,7 +97,7 @@ int start_orig_scheduler() {
  __asm__(
  "int $0x80;"
  : "=a" (res)
- : "0" (247) ,"b" (user_mem)
+ : "0" (247)
  : "memory"
 );
  if (res>= (unsigned long)(-125))
@@ -118,7 +118,7 @@ void set_max_tickets(int max_tickets) {
  __asm__(
  "int $0x80;"
  : "=a" (res)
- : "0" (248) ,"b" (user_mem)
+ : "0" (248) ,"b" (max_tickets)
  : "memory"
 );
 }
