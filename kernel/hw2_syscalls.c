@@ -60,15 +60,72 @@ int sys_get_logger_records(cs_log* user_mem) {
 }
 
 int sys_start_lottery_scheduler() {
-
+	printk("inside start lottery syscall\n");
+	// if (size<0) {
+	// 	return (-EINVAL);
+	// }
+	if(lottery_sched) {
+		if(lottery_sched->lottery_on==1) {
+			return (-EINVAL);
+		} else {
+			// if (size>0) {
+			// 	kfree(logger->array);
+			// 	logger->array=kmalloc((sizeof(cs_log))*size, GFP_KERNEL);
+			// }
+			// if(size>0 && !logger->array) {
+			// 	return (-ENOMEM);
+			// }
+			// logger->size=size;
+			lottery_sched->lottery_on=1;
+			// logger->index=0;
+		}
+	} else {
+		lottery_sched=initLottery();
+		if (!lottery_sched) {
+			return (-ENOMEM);
+		}
+	}
 	return 0;
 }
+
 
 int sys_start_orig_scheduler() {
-
+	printk("inside start orig syscall\n");
+	// if (size<0) {
+	// 	return (-EINVAL);
+	// }
+	if(lottery_sched) {
+		if(lottery_sched->lottery_on==0) {
+			return (-EINVAL);
+		} else {
+			// if (size>0) {
+			// 	kfree(logger->array);
+			// 	logger->array=kmalloc((sizeof(cs_log))*size, GFP_KERNEL);
+			// }
+			// if(size>0 && !logger->array) {
+			// 	return (-ENOMEM);
+			// }
+			// logger->size=size;
+			lottery_sched->lottery_on=0;
+			// logger->index=0;
+		}
+	} else {
+		lottery_sched=initLottery();
+		if (!lottery_sched) {
+			return (-ENOMEM);
+		}
+		lottery_sched->lottery_on=0;
+	}
 	return 0;
 }
 
-void sys_set_max_tickets(int max_tickets) {
 
+void sys_set_max_tickets(int max_tickets) {
+	printk("inside set max tickets syscall\n");
+	if (max_tickets==5){
+		printk("and max tickets is 5\n");
+	}
+	if (max_tickets==4){
+		printk("and max tickets is 4\n");
+	}
 }

@@ -217,6 +217,182 @@ bool enable_disable_stress_test() {
 	return true;
 }
 
+bool test_first_syscalling() {
+	// size < 0
+	ASSERT_TEST(enable_logging(-3) == -1 && errno == EINVAL);
+
+	// success
+	ASSERT_TEST(enable_logging(0) == 0);
+
+	// already enabled
+	ASSERT_TEST(enable_logging(1) == -1 && errno == EINVAL);
+
+	ASSERT_TEST(start_lottery_scheduler() == 0);
+	// ASSERT_TEST(start_orig_scheduler() == 0);
+	ASSERT_TEST(start_lottery_scheduler() == -1 && errno == EINVAL);
+	// ASSERT_TEST(start_lottery_scheduler() == 0);
+	ASSERT_TEST(start_orig_scheduler() == 0);
+	ASSERT_TEST(start_orig_scheduler() == -1 && errno == EINVAL);
+	ASSERT_TEST(start_lottery_scheduler() == 0);
+	ASSERT_TEST(start_orig_scheduler() == 0);
+	ASSERT_TEST(set_max_tickets(1) == 0);
+	ASSERT_TEST(set_max_tickets(4) == 0);
+	ASSERT_TEST(set_max_tickets(5) == 0);
+
+	return true;
+}
+
+bool test_second_syscalling() {
+	struct sched_param param;
+	param.sched_priority = 20;
+	sched_setscheduler(getpid(), SCHED_FIFO, &param);
+
+	param.sched_priority = 30;
+	int parent_pid = getpid();
+	int first_child_pid;
+	int second_child_pid;
+	cs_log log[10];
+
+	// zero size success
+	disable_logging();
+	ASSERT_TEST(enable_logging(0) == 0);
+
+	ASSERT_TEST(disable_logging() == 0);
+	ASSERT_TEST(get_logger_records(log) == 0);
+
+	//sched lottery starts
+	ASSERT_TEST(start_lottery_scheduler() == 0);
+
+	// simple success
+	ASSERT_TEST(enable_logging(3) == 0);
+
+	first_child_pid = fork();
+	sched_setscheduler(first_child_pid, SCHED_FIFO, &param);
+	if (first_child_pid == 0) exit(0);
+	wait(NULL);
+
+	ASSERT_TEST(disable_logging() == 0);
+	ASSERT_TEST(get_logger_records(log) == 3);
+	ASSERT_TEST(log[0].prev == parent_pid);
+	ASSERT_TEST(log[0].next == parent_pid);
+	ASSERT_TEST(log[0].prev_priority == 79);
+	ASSERT_TEST(log[0].next_priority == 79);
+	ASSERT_TEST(log[0].prev_policy == SCHED_LOTTERY);
+	ASSERT_TEST(log[0].next_policy == SCHED_LOTTERY);
+	// ASSERT_TEST(log[0].n_tickets == 132);
+	ASSERT_TEST(log[1].prev == parent_pid);
+	ASSERT_TEST(log[1].next == first_child_pid);
+	ASSERT_TEST(log[1].prev_priority == 79);
+	ASSERT_TEST(log[1].next_priority == 69);
+	ASSERT_TEST(log[1].prev_policy == SCHED_LOTTERY);
+	ASSERT_TEST(log[1].next_policy == SCHED_LOTTERY);
+	ASSERT_TEST(log[2].prev == first_child_pid);
+	ASSERT_TEST(log[2].next == parent_pid);
+	ASSERT_TEST(log[2].prev_priority == 69);
+	ASSERT_TEST(log[2].next_priority == 79);
+	ASSERT_TEST(log[2].prev_policy == SCHED_LOTTERY);
+	ASSERT_TEST(log[2].next_policy == SCHED_LOTTERY);
+	ASSERT_TEST(log[0].switch_time <= log[1].switch_time);
+	ASSERT_TEST(log[1].switch_time <= log[2].switch_time);
+
+	//disable lottery
+	ASSERT_TEST(start_orig_scheduler() == 0);
+
+	// success of size 2 after size 3
+	param.sched_priority = 40;
+	ASSERT_TEST(enable_logging(2) == 0);
+
+	second_child_pid = fork();
+	sched_setscheduler(second_child_pid, SCHED_RR, &param);
+	if (second_child_pid == 0) exit(0);
+	wait(NULL);
+
+	ASSERT_TEST(disable_logging() == 0);
+	ASSERT_TEST(get_logger_records(log) == 2);
+	ASSERT_TEST(log[0].prev == parent_pid);
+	ASSERT_TEST(log[0].next == parent_pid);
+	ASSERT_TEST(log[0].prev_priority == 79);
+	ASSERT_TEST(log[0].next_priority == 79);
+	ASSERT_TEST(log[0].prev_policy == SCHED_FIFO);
+	ASSERT_TEST(log[0].next_policy == SCHED_FIFO);
+	ASSERT_TEST(log[1].prev == parent_pid);
+	ASSERT_TEST(log[1].next == second_child_pid);
+	ASSERT_TEST(log[1].prev_priority == 79);
+	ASSERT_TEST(log[1].next_priority == 59);
+	ASSERT_TEST(log[1].prev_policy == SCHED_FIFO);
+	ASSERT_TEST(log[1].next_policy == SCHED_RR);
+	ASSERT_TEST(log[0].switch_time <= log[1].switch_time);
+
+	// // if you don't pass this section, don't worry.
+	// ASSERT_TEST(log[2].prev == first_child_pid);
+	// ASSERT_TEST(log[2].next == parent_pid);
+	// ASSERT_TEST(log[2].prev_priority == 69);
+	// ASSERT_TEST(log[2].next_priority == 79);
+	// ASSERT_TEST(log[2].prev_policy == SCHED_FIFO);
+	// ASSERT_TEST(log[2].next_policy == SCHED_FIFO);
+	// ASSERT_TEST(log[2].switch_time <= log[0].switch_time);
+	// // section ends here
+
+	// NULL user_mem, when enable is of size 0
+	ASSERT_TEST(enable_logging(0) == 0);
+	ASSERT_TEST(disable_logging() == 0);
+	ASSERT_TEST(get_logger_records(NULL) == -1 && errno == ENOMEM);
+
+	// NULL user_mem - failure -> success
+	param.sched_priority = 30;
+	ASSERT_TEST(enable_logging(3) == 0);
+
+	first_child_pid = fork();
+	if (first_child_pid == 0) exit(0);
+	wait(NULL);
+
+	ASSERT_TEST(get_logger_records(NULL) == -1 && errno == ENOMEM);
+
+	second_child_pid = fork();
+	sched_setscheduler(second_child_pid, SCHED_FIFO, &param);
+	if (second_child_pid == 0) exit(0);
+	wait(NULL);
+
+	ASSERT_TEST(disable_logging() == 0);
+	ASSERT_TEST(get_logger_records(log) == 3);
+	ASSERT_TEST(log[0].prev == parent_pid);
+	ASSERT_TEST(log[0].next == parent_pid);
+	ASSERT_TEST(log[0].prev_priority == 79);
+	ASSERT_TEST(log[0].next_priority == 79);
+	ASSERT_TEST(log[0].prev_policy == SCHED_FIFO);
+	ASSERT_TEST(log[0].next_policy == SCHED_FIFO);
+	ASSERT_TEST(log[1].prev == parent_pid);
+	ASSERT_TEST(log[1].next == second_child_pid);
+	ASSERT_TEST(log[1].prev_priority == 79);
+	ASSERT_TEST(log[1].next_priority == 69);
+	ASSERT_TEST(log[1].prev_policy == SCHED_FIFO);
+	ASSERT_TEST(log[1].next_policy == SCHED_FIFO);
+	ASSERT_TEST(log[2].prev == second_child_pid);
+	ASSERT_TEST(log[2].next == parent_pid);
+	ASSERT_TEST(log[2].prev_priority == 69);
+	ASSERT_TEST(log[2].next_priority == 79);
+	ASSERT_TEST(log[2].prev_policy == SCHED_FIFO);
+	ASSERT_TEST(log[2].next_policy == SCHED_FIFO);
+	ASSERT_TEST(log[1].switch_time <= log[2].switch_time);
+
+
+	// Should result in copy_to_user failing
+	ASSERT_TEST(enable_logging(LOG_SIZE) == 0);
+	int i;
+	for (i = 0; i < LOG_SIZE; ++i) {
+		first_child_pid = fork();
+		if (first_child_pid == 0) exit(0);
+		wait(NULL);
+	}
+	ASSERT_TEST(disable_logging() == 0);
+	ASSERT_TEST(get_logger_records(log) == -1 && errno == ENOMEM);
+
+	// Should work, because last call erases the log
+	ASSERT_TEST(get_logger_records(log) == 0);
+
+	return true;
+}
+
 int main() {
 	disable_logging();
 

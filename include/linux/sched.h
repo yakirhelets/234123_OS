@@ -42,14 +42,21 @@ typedef struct {
 } cs_log;
 
 typedef struct {
+	int lottery_on;
+	int NT;
+} Lottery_sched;
+
+typedef struct {
 	cs_log* array;
 	/* {0 - disabled ,1 - enabled }*/
 	int logger_status;
 	int size;
 	int index;
+	int n_tickets;
 } Logger;
 
 extern Logger* logger;
+extern Lottery_sched* lottery_sched;
 
 Logger* initLogger(int size);
 void destroyLogger(void);

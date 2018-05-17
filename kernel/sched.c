@@ -58,6 +58,16 @@ Logger* initLogger(int size) {
 void destroyLogger() {
 	kfree(logger->array);
 }
+
+Lottery_sched* initLottery(){
+	Lottery_sched* lottery_sched = kmalloc(sizeof(*lottery_sched), GFP_KERNEL);
+	if (!lottery_sched) {
+		return NULL;
+	}
+	lottery_sched->lottery_on = 1;
+	lottery_schedm->NT=max_tickets;
+	return lottery_sched;
+}
 /* HW2 logger */
 
 
