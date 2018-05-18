@@ -36,6 +36,7 @@
 Logger* logger = NULL;
 Lottery_sched* lottery_sched = NULL;
 int num_of_tasks = 0;
+int num_of_tickets = 0;
 
 Logger* initLogger(int size) {
 	Logger* newLogger = kmalloc(sizeof(*newLogger), GFP_KERNEL);
@@ -54,7 +55,7 @@ Logger* initLogger(int size) {
 	newLogger->logger_status = 1;
 	newLogger->size = size;
 	newLogger->index = 0;
-	newLogger->n_tickets = num_of_tasks;
+	newLogger->n_tickets = num_of_tickets;
 	return newLogger;
 }
 
@@ -270,20 +271,32 @@ static inline void rq_unlock(runqueue_t *rq)
  */
 static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 {
-	logger->n_tickets = --num_of_tasks;
+	runqueue_t* rq = this_rq();//HW2
 	array->nr_active--;
 	list_del(&p->run_list);
 	if (list_empty(array->queue + p->prio))
 		__clear_bit(p->prio, array->bitmap);
+	/* HW2 */
+	if (array == rq->active) {
+		num_of_tasks--;
+		num_of_tickets-=(MAX_PRIO-(p->prio));
+	}
+	/* HW2 */
 }
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 {
-	logger->n_tickets = ++num_of_tasks;
+	runqueue_t* rq = this_rq();//HW2
 	list_add_tail(&p->run_list, array->queue + p->prio);
 	__set_bit(p->prio, array->bitmap);
 	array->nr_active++;
 	p->array = array;
+	/* HW2 */
+	if (array == rq->active) {
+		num_of_tasks++;
+		num_of_tickets+=(MAX_PRIO-(p->prio));
+	}
+	/* HW2 */
 }
 
 static inline int effective_prio(task_t *p)
@@ -907,6 +920,10 @@ pick_next_task:
 		/*
 		 * Switch the active and expired arrays.
 		 */
+		 /* HW2 */
+		num_of_tasks=0;
+		num_of_tickets=0;
+		 /* HW2 */
 		rq->active = rq->expired;
 		rq->expired = array;
 		array = rq->active;
@@ -940,7 +957,7 @@ switch_tasks:
 				logger->array[logger->index].next_policy = next->policy;
 			}
 			logger->array[logger->index].switch_time = jiffies;
-			logger->array[logger->index].n_tickets = num_of_tasks;
+			logger->array[logger->index].n_tickets = num_of_tickets;
 			logger->index++;
 		}
 	}
@@ -1465,16 +1482,36 @@ asmlinkage long sys_sched_yield(void)
 
 	if (unlikely(rt_task(current))) {
 		list_del(&current->run_list);
-		logger->n_tickets = --num_of_tasks;//HW2
+		/* HW2 */
+		if (array == rq->active) {
+			num_of_tasks--;
+			num_of_tickets-=(MAX_PRIO-(current->prio));
+		}
+		/* HW2 */
 		list_add_tail(&current->run_list, array->queue + current->prio);
-		logger->n_tickets = ++num_of_tasks;//HW2
+		/* HW2 */
+		if (array == rq->active) {
+			num_of_tasks++;
+			num_of_tickets+=(MAX_PRIO-(current->prio));
+		}
+		/* HW2 */
 		goto out_unlock;
 	}
-
 	list_del(&current->run_list);
+	/* HW2 */
+	if (array == rq->active) {
+		num_of_tasks--;
+		num_of_tickets-=(MAX_PRIO-(current->prio));
+	}
+	/* HW2 */
 	if (!list_empty(array->queue + current->prio)) {
-		logger->n_tickets = ++num_of_tasks;//HW2
 		list_add(&current->run_list, array->queue[current->prio].next);
+		/* HW2 */
+		if (array == rq->active) {
+			num_of_tasks++;
+			num_of_tickets+=(MAX_PRIO-(current->prio));
+		}
+		/* HW2 */
 		goto out_unlock;
 	}
 	__clear_bit(current->prio, array->bitmap);
@@ -1485,8 +1522,13 @@ asmlinkage long sys_sched_yield(void)
 		i = current->prio;
 	else
 		current->prio = i;
-	logger->n_tickets = ++num_of_tasks;//HW2
 	list_add(&current->run_list, array->queue[i].next);
+	/* HW2 */
+	if (array == rq->active) {
+		num_of_tasks++;
+		num_of_tickets+=(MAX_PRIO-(current->prio));
+	}
+	/* HW2 */
 	__set_bit(i, array->bitmap);
 
 out_unlock:

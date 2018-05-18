@@ -60,6 +60,7 @@ typedef struct {
 extern Logger* logger;
 extern Lottery_sched* lottery_sched;
 extern int num_of_tasks;
+extern int num_of_tickets;
 
 Logger* initLogger(int size);
 void destroyLogger(void);

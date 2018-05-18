@@ -43,6 +43,8 @@ int sys_disable_logging() {
 }
 
 int sys_get_logger_records(cs_log* user_mem) {
+	printk("current num of tasks: %d\n", num_of_tasks);
+	printk("current num of tickets: %d\n", num_of_tickets);
 	if (!logger || !user_mem) {
 		logger->index=0;
 		return (-ENOMEM);
