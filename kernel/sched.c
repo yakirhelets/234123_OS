@@ -37,6 +37,7 @@ Logger* logger = NULL;
 Lottery_sched* lottery_sched = NULL;
 int num_of_tasks = 0;
 int num_of_tickets = 0;
+int[140] num_of_tasks_array = {0};
 
 Logger* initLogger(int size) {
 	Logger* newLogger = kmalloc(sizeof(*newLogger), GFP_KERNEL);
@@ -787,6 +788,19 @@ static inline void idle_tick(void)
 		(jiffies - (rq)->expired_timestamp >= \
 			STARVATION_LIMIT * ((rq)->nr_running) + 1))
 
+/* HW2 - find next task given a ticket number*/
+void fintNextTask(int ticket_num) {
+	runqueue_t *rq = this_rq();
+	int count = num_of_tickets;
+	int temp = 0;
+	int i = sched_find_first_bit(rq->active->bitmap);
+	// while (i<MAX_PRIO){
+	// 		count=count+MAX_PRIO-i;
+	// 		i=find_next_bit(this_rq()->active.bitmap, MAX_PRIO, i);
+	// 	}
+	// 	return count;
+}
+/* HW2 */
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.

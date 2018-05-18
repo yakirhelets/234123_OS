@@ -402,7 +402,7 @@ int main() {
 	RUN_TEST_CHILD(test_child, test_enable_logging);
 	RUN_TEST_CHILD(test_child, test_disable_logging);
 	RUN_TEST_CHILD(test_child, test_get_logger_records);
-	RUN_TEST_CHILD(test_child, enable_disable_stress_test);
+	// RUN_TEST_CHILD(test_child, enable_disable_stress_test);
 	RUN_TEST_CHILD(test_child, test_first_syscalling);
 	RUN_TEST_CHILD(test_child, test_second_syscalling);
 
