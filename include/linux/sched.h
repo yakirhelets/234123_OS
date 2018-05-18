@@ -39,10 +39,12 @@ typedef struct {
 	int prev_policy;
 	int next_policy;
 	long switch_time;
+	int n_tickets;
 } cs_log;
 
 typedef struct {
 	int lottery_on;
+	int total_num_of_tickets;
 	int NT;
 } Lottery_sched;
 
@@ -57,9 +59,13 @@ typedef struct {
 
 extern Logger* logger;
 extern Lottery_sched* lottery_sched;
+extern int num_of_tasks;
 
 Logger* initLogger(int size);
 void destroyLogger(void);
+Lottery_sched* initLottery(void);
+// int lotteryGetTotalNumberOfTickets(prio_array_t *arr);
+
 /* HW2 logger */
 
 /*
@@ -151,6 +157,7 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_OTHER		0
 #define SCHED_FIFO		1
 #define SCHED_RR		2
+#define SCHED_LOTTERY		3
 
 struct sched_param {
 	int sched_priority;

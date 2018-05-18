@@ -11,6 +11,7 @@ typedef struct {
 	int prev_policy;
 	int next_policy;
   long switch_time;
+	int n_tickets;
 } cs_log;
 
 int enable_logging (int size) {
@@ -113,7 +114,7 @@ return (int) res;
 
 
 
-void set_max_tickets(int max_tickets) {
+int set_max_tickets(int max_tickets) {
  unsigned int res;
  __asm__(
  "int $0x80;"
@@ -121,4 +122,10 @@ void set_max_tickets(int max_tickets) {
  : "0" (248) ,"b" (max_tickets)
  : "memory"
 );
+if (res>= (unsigned long)(-125))
+{
+errno = -res;
+res = -1;
+}
+return (int) res;
 }

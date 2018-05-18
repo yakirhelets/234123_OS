@@ -8,6 +8,8 @@
 #define SCHED_OTHER		0
 #define SCHED_FIFO		1
 #define SCHED_RR		2
+#define SCHED_LOTTERY		3
+
 
 #define TEST_SIZE 1000
 #define LOG_SIZE 4000
@@ -401,5 +403,8 @@ int main() {
 	RUN_TEST_CHILD(test_child, test_disable_logging);
 	RUN_TEST_CHILD(test_child, test_get_logger_records);
 	RUN_TEST_CHILD(test_child, enable_disable_stress_test);
+	RUN_TEST_CHILD(test_child, test_first_syscalling);
+	RUN_TEST_CHILD(test_child, test_second_syscalling);
+
 	return 0;
 }

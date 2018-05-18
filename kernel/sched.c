@@ -34,6 +34,8 @@
 
 /* HW2 logger */
 Logger* logger = NULL;
+Lottery_sched* lottery_sched = NULL;
+int num_of_tasks = 0;
 
 Logger* initLogger(int size) {
 	Logger* newLogger = kmalloc(sizeof(*newLogger), GFP_KERNEL);
@@ -52,6 +54,7 @@ Logger* initLogger(int size) {
 	newLogger->logger_status = 1;
 	newLogger->size = size;
 	newLogger->index = 0;
+	newLogger->n_tickets = num_of_tasks;
 	return newLogger;
 }
 
@@ -59,15 +62,25 @@ void destroyLogger() {
 	kfree(logger->array);
 }
 
-Lottery_sched* initLottery(){
-	Lottery_sched* lottery_sched = kmalloc(sizeof(*lottery_sched), GFP_KERNEL);
-	if (!lottery_sched) {
+Lottery_sched* initLottery() {
+	Lottery_sched* newLottery = kmalloc(sizeof(*lottery_sched), GFP_KERNEL);
+	if (!newLottery) {
 		return NULL;
 	}
-	lottery_sched->lottery_on = 1;
-	lottery_schedm->NT=max_tickets;
-	return lottery_sched;
+	newLottery->lottery_on = 1;
+	// lottery_sched->NT;
+	return newLottery;
 }
+
+// int lotteryGetTotalNumberOfTickets() {
+// 	int count=0;
+// 	int i = sched_find_first_bit(this_rq().active->bitmap);
+// 	while (i<MAX_PRIO){
+// 		count=count+MAX_PRIO-i;
+// 		i=find_next_bit(this_rq()->active.bitmap, MAX_PRIO, i);
+// 	}
+// 	return count;
+// }
 /* HW2 logger */
 
 
@@ -257,6 +270,7 @@ static inline void rq_unlock(runqueue_t *rq)
  */
 static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 {
+	logger->n_tickets = --num_of_tasks;
 	array->nr_active--;
 	list_del(&p->run_list);
 	if (list_empty(array->queue + p->prio))
@@ -265,6 +279,7 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 {
+	logger->n_tickets = ++num_of_tasks;
 	list_add_tail(&p->run_list, array->queue + p->prio);
 	__set_bit(p->prio, array->bitmap);
 	array->nr_active++;
@@ -908,12 +923,24 @@ switch_tasks:
 		if (logger->logger_status==1 && logger->size > 0 && logger->index < logger->size) {
 			logger->array[logger->index].prev = prev->pid;
 			logger->array[logger->index].next = next->pid;
+			// printk("next->pid = %d", next->pid);
 			logger->array[logger->index].prev_priority = prev->prio;
 			logger->array[logger->index].next_priority = next->prio;
-			logger->array[logger->index].prev_policy = prev->policy;
-			logger->array[logger->index].next_policy = next->policy;
+			if (lottery_sched){
+				if (lottery_sched->lottery_on==1){
+					logger->array[logger->index].prev_policy = SCHED_LOTTERY;
+					logger->array[logger->index].next_policy = SCHED_LOTTERY;
+					// logger->array[logger->index].n_tickets = lotteryGetNumberOfTickets(array);
+				} else {
+					logger->array[logger->index].prev_policy = prev->policy;
+					logger->array[logger->index].next_policy = next->policy;
+				}
+			} else {
+				logger->array[logger->index].prev_policy = prev->policy;
+				logger->array[logger->index].next_policy = next->policy;
+			}
 			logger->array[logger->index].switch_time = jiffies;
-
+			logger->array[logger->index].n_tickets = num_of_tasks;
 			logger->index++;
 		}
 	}
@@ -1438,12 +1465,15 @@ asmlinkage long sys_sched_yield(void)
 
 	if (unlikely(rt_task(current))) {
 		list_del(&current->run_list);
+		logger->n_tickets = --num_of_tasks;//HW2
 		list_add_tail(&current->run_list, array->queue + current->prio);
+		logger->n_tickets = ++num_of_tasks;//HW2
 		goto out_unlock;
 	}
 
 	list_del(&current->run_list);
 	if (!list_empty(array->queue + current->prio)) {
+		logger->n_tickets = ++num_of_tasks;//HW2
 		list_add(&current->run_list, array->queue[current->prio].next);
 		goto out_unlock;
 	}
@@ -1455,7 +1485,7 @@ asmlinkage long sys_sched_yield(void)
 		i = current->prio;
 	else
 		current->prio = i;
-
+	logger->n_tickets = ++num_of_tasks;//HW2
 	list_add(&current->run_list, array->queue[i].next);
 	__set_bit(i, array->bitmap);
 

@@ -61,23 +61,12 @@ int sys_get_logger_records(cs_log* user_mem) {
 
 int sys_start_lottery_scheduler() {
 	printk("inside start lottery syscall\n");
-	// if (size<0) {
-	// 	return (-EINVAL);
-	// }
+
 	if(lottery_sched) {
 		if(lottery_sched->lottery_on==1) {
 			return (-EINVAL);
 		} else {
-			// if (size>0) {
-			// 	kfree(logger->array);
-			// 	logger->array=kmalloc((sizeof(cs_log))*size, GFP_KERNEL);
-			// }
-			// if(size>0 && !logger->array) {
-			// 	return (-ENOMEM);
-			// }
-			// logger->size=size;
 			lottery_sched->lottery_on=1;
-			// logger->index=0;
 		}
 	} else {
 		lottery_sched=initLottery();
@@ -85,29 +74,18 @@ int sys_start_lottery_scheduler() {
 			return (-ENOMEM);
 		}
 	}
+	//CALL SCHED() OR YIELD
 	return 0;
 }
 
 
 int sys_start_orig_scheduler() {
 	printk("inside start orig syscall\n");
-	// if (size<0) {
-	// 	return (-EINVAL);
-	// }
 	if(lottery_sched) {
 		if(lottery_sched->lottery_on==0) {
 			return (-EINVAL);
 		} else {
-			// if (size>0) {
-			// 	kfree(logger->array);
-			// 	logger->array=kmalloc((sizeof(cs_log))*size, GFP_KERNEL);
-			// }
-			// if(size>0 && !logger->array) {
-			// 	return (-ENOMEM);
-			// }
-			// logger->size=size;
 			lottery_sched->lottery_on=0;
-			// logger->index=0;
 		}
 	} else {
 		lottery_sched=initLottery();
@@ -120,12 +98,11 @@ int sys_start_orig_scheduler() {
 }
 
 
-void sys_set_max_tickets(int max_tickets) {
-	printk("inside set max tickets syscall\n");
-	if (max_tickets==5){
-		printk("and max tickets is 5\n");
+int sys_set_max_tickets(int max_tickets) {
+	if (max_tickets < 0) {
+		lottery_sched->NT=lottery_sched->total_num_of_tickets;
+	} else {
+		lottery_sched->NT=max_tickets;
 	}
-	if (max_tickets==4){
-		printk("and max tickets is 4\n");
-	}
+	return 0;
 }
