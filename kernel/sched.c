@@ -37,7 +37,7 @@ Logger* logger = NULL;
 Lottery_sched* lottery_sched = NULL;
 int num_of_tasks = 0;
 int num_of_tickets = 0;
-int[140] num_of_tasks_array = {0};
+int num_of_tasks_array[MAX_PRIO] = {0};
 
 Logger* initLogger(int size) {
 	Logger* newLogger = kmalloc(sizeof(*newLogger), GFP_KERNEL);
@@ -281,6 +281,8 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 	if (array == rq->active) {
 		num_of_tasks--;
 		num_of_tickets-=(MAX_PRIO-(p->prio));
+		num_of_tasks_array[p->prio]--;
+		printk("dequeue: num_of_tasks_array[%d]=%d\n",p->prio,num_of_tasks_array[p->prio]);
 	}
 	/* HW2 */
 }
@@ -296,6 +298,8 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 	if (array == rq->active) {
 		num_of_tasks++;
 		num_of_tickets+=(MAX_PRIO-(p->prio));
+		num_of_tasks_array[p->prio]++;
+		printk("enqueue: num_of_tasks_array[%d]=%d\n",p->prio,num_of_tasks_array[p->prio]);
 	}
 	/* HW2 */
 }
@@ -937,6 +941,8 @@ pick_next_task:
 		 /* HW2 */
 		num_of_tasks=0;
 		num_of_tickets=0;
+		// num_of_tasks_array[MAX_PRIO] = {0};
+		memset(num_of_tasks_array, 0, sizeof num_of_tasks_array);
 		 /* HW2 */
 		rq->active = rq->expired;
 		rq->expired = array;
@@ -1500,6 +1506,7 @@ asmlinkage long sys_sched_yield(void)
 		if (array == rq->active) {
 			num_of_tasks--;
 			num_of_tickets-=(MAX_PRIO-(current->prio));
+			num_of_tasks_array[current->prio]--;
 		}
 		/* HW2 */
 		list_add_tail(&current->run_list, array->queue + current->prio);
@@ -1507,6 +1514,7 @@ asmlinkage long sys_sched_yield(void)
 		if (array == rq->active) {
 			num_of_tasks++;
 			num_of_tickets+=(MAX_PRIO-(current->prio));
+			num_of_tasks_array[current->prio]++;
 		}
 		/* HW2 */
 		goto out_unlock;
@@ -1516,6 +1524,7 @@ asmlinkage long sys_sched_yield(void)
 	if (array == rq->active) {
 		num_of_tasks--;
 		num_of_tickets-=(MAX_PRIO-(current->prio));
+		num_of_tasks_array[current->prio]--;
 	}
 	/* HW2 */
 	if (!list_empty(array->queue + current->prio)) {
@@ -1524,6 +1533,7 @@ asmlinkage long sys_sched_yield(void)
 		if (array == rq->active) {
 			num_of_tasks++;
 			num_of_tickets+=(MAX_PRIO-(current->prio));
+			num_of_tasks_array[current->prio]++;
 		}
 		/* HW2 */
 		goto out_unlock;
@@ -1541,6 +1551,7 @@ asmlinkage long sys_sched_yield(void)
 	if (array == rq->active) {
 		num_of_tasks++;
 		num_of_tickets+=(MAX_PRIO-(current->prio));
+		num_of_tasks_array[current->prio]++;
 	}
 	/* HW2 */
 	__set_bit(i, array->bitmap);

@@ -61,6 +61,7 @@ extern Logger* logger;
 extern Lottery_sched* lottery_sched;
 extern int num_of_tasks;
 extern int num_of_tickets;
+extern num_of_tasks_array[140];
 
 Logger* initLogger(int size);
 void destroyLogger(void);
