@@ -793,16 +793,34 @@ static inline void idle_tick(void)
 			STARVATION_LIMIT * ((rq)->nr_running) + 1))
 
 /* HW2 - find next task given a ticket number*/
-void fintNextTask(int ticket_num) {
+pid_t findNextTask(int ticket_num) {
 	runqueue_t *rq = this_rq();
+	prio_array_t* array = rq->active;
 	int count = num_of_tickets;
-	int temp = 0;
-	int i = sched_find_first_bit(rq->active->bitmap);
-	// while (i<MAX_PRIO){
-	// 		count=count+MAX_PRIO-i;
-	// 		i=find_next_bit(this_rq()->active.bitmap, MAX_PRIO, i);
-	// 	}
-	// 	return count;
+	int i=0;
+	while (i<MAX_PRIO && (count>=((MAX_PRIO-i)*num_of_tasks_array[i]))) {
+		count-=((MAX_PRIO-i)*num_of_tasks_array[i]);
+		i++;
+	}
+	// list_t* queue = array->queue[i];
+	struct list_head *p=(&array->queue[i]);
+	int task_num = 0;
+	while (count>0 && task_num <= num_of_tasks_array[i]) {
+		count-=(MAX_PRIO-i);
+		task_num++;
+		p=p->next;
+	}
+	//task_num is the task with the i'th ticket
+	struct task_struct *task = list_entry(p, struct task_struct, run_list);
+	return task->pid;
+
+	/* array is a pointer to a struct prio_array, prio is the priority value */
+
+	// struct list_head *p;
+	// list_for_each(p, &array->queue[prio]) {
+	// 	struct task_struct *task = list_entry(p, struct task_struct, run_list);
+	// 	/* do stuff with task */
+	// }
 }
 /* HW2 */
 /*
