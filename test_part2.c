@@ -25,18 +25,18 @@ bool test_start_lottery_orig_scheduler() {
 
 	ASSERT_TEST(start_lottery_scheduler() == 0);
 
-	// struct sched_param param;
-	// param.sched_priority = 30;
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_OTHER, &param) == -1);
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_FIFO, &param) == -1);
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_RR, &param) == -1);
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_LOTTERY, &param) == -1);
+	struct sched_param param;
+	param.sched_priority = 30;
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_OTHER, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_FIFO, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_RR, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_LOTTERY, &param) == -1);
 
 	ASSERT_TEST(start_lottery_scheduler() == -1 && errno == EINVAL);
 
 	ASSERT_TEST(start_orig_scheduler() == 0);
 
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_LOTTERY, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_LOTTERY, &param) == -1);
 	ASSERT_TEST(start_orig_scheduler() == -1 && errno == EINVAL);
 
 	int i = 0;

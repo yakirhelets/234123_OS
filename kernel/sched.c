@@ -496,12 +496,11 @@ void sched_exit(task_t * p)
 {
 	__cli();
 	if (p->first_time_slice) {
-		if (lottery_sched) {//HW2
-			if (lottery_sched->lottery_on==1) {
-				current->time_slice = MAX_TIMESLICE;
-			}
-		} else {
+		if (!(lottery_sched && lottery_sched->lottery_on==1)) {
 			current->time_slice += p->time_slice;
+		}
+		if (lottery_sched && lottery_sched->lottery_on==1) {
+			current->time_slice = MAX_TIMESLICE;
 		}
 		if (unlikely(current->time_slice > MAX_TIMESLICE))
 			current->time_slice = MAX_TIMESLICE;
@@ -962,24 +961,23 @@ void scheduler_tick(int user_tick, int system)
 		 * RR tasks need a special form of timeslice management.
 		 * FIFO tasks have no timeslices.
 		 */
-		 if (lottery_sched) {//HW2
-			 if (lottery_sched->lottery_on==1) {
-				 p->time_slice = MAX_TIMESLICE;
-				 p->first_time_slice = MAX_TIMESLICE;
-			 }
-		 } else {
-			 if ((p->policy == SCHED_RR) && !--p->time_slice) {
-				 p->time_slice = TASK_TIMESLICE(p);
-				 p->first_time_slice = 0;
-				 set_tsk_need_resched(p);
+		if ((p->policy == SCHED_RR || (lottery_sched && lottery_sched->lottery_on==1)) && !--p->time_slice) {
+			if (!(lottery_sched && lottery_sched->lottery_on==1)) {
+				p->time_slice = TASK_TIMESLICE(p);
+				p->first_time_slice = 0;
+			}
+			if (lottery_sched && lottery_sched->lottery_on==1) {
+				p->time_slice = MAX_TIMESLICE;
+				p->first_time_slice = MAX_TIMESLICE;
+			}
+			set_tsk_need_resched(p);
 
-				 /* put it at the end of the queue: */
-				 dequeue_task(p, rq->active);
-				 enqueue_task(p, rq->active);
-			 }
-		 }
-	 }
+			/* put it at the end of the queue: */
+			dequeue_task(p, rq->active);
+			enqueue_task(p, rq->active);
+		}
 		goto out;
+	}
 	/*
 	 * The task was running during this tick - update the
 	 * time slice counter and the sleep average. Note: we
@@ -988,28 +986,26 @@ void scheduler_tick(int user_tick, int system)
 	 * it possible for interactive tasks to use up their
 	 * timeslices at their highest priority levels.
 	 */
-	if (p->sleep_avg) {
+	if (p->sleep_avg)
 		p->sleep_avg--;
-	}
 	if (!--p->time_slice) {
 		dequeue_task(p, rq->active);
 		set_tsk_need_resched(p);
 		p->prio = effective_prio(p);
-		if (lottery_sched) {
-			if (lottery_sched->lottery_on==1) {
-				p->first_time_slice = MAX_TIMESLICE;
-				p->time_slice = MAX_TIMESLICE;
-			}
-		} else {
+		if (!(lottery_sched && lottery_sched->lottery_on==1)) {
 			p->first_time_slice = 0;
 			p->time_slice = TASK_TIMESLICE(p);
+			if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
+				if (!rq->expired_timestamp)
+					rq->expired_timestamp = jiffies;
+				enqueue_task(p, rq->expired);
+			} else
+				enqueue_task(p, rq->active);
 		}
-		if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
-			if (!rq->expired_timestamp)
-				rq->expired_timestamp = jiffies;
-			enqueue_task(p, rq->expired);
-		} else
-			enqueue_task(p, rq->active);
+		if (lottery_sched && lottery_sched->lottery_on==1) {
+			p->first_time_slice = MAX_TIMESLICE;
+			p->time_slice = MAX_TIMESLICE;
+		}
 	}
 out:
 #if CONFIG_SMP
@@ -1090,7 +1086,7 @@ pick_next_task:
 	queue = array->queue + idx;
 	next = list_entry(queue->next, task_t, run_list);
 	if (lottery_sched){
-		if (lottery_sched->lottery_on){
+		if (lottery_sched->lottery_on==1){
 			lottery_sched->total_num_of_tickets = getNumberOfTickets(array);
 			set_max_tickets_aux(lottery_sched->limit);
 			// logger->array[logger->index].n_tickets = lottery_sched->NT;
