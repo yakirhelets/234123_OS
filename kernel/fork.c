@@ -723,25 +723,11 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	 */
 	__save_flags(flags);
 	__cli();
-
-
 	if (!current->time_slice)
 		BUG();
-
-	//YAKIR
-	if (lottery_sched) {
-			if (lottery_sched->lottery_on) {
-				p->time_slice = current->time_slice;
-				p->first_time_slice = current->first_time_slice;;
-				current->time_slice = MAX_TIMESLICE;
-			}
-	} else {//ORIGINAL PART
-		p->time_slice = (current->time_slice + 1) >> 1;
-		p->first_time_slice = 1;
-		current->time_slice >>= 1;
-	}
-	//YAKIR
-
+	p->time_slice = (current->time_slice + 1) >> 1;
+	p->first_time_slice = 1;
+	current->time_slice >>= 1;
 	p->sleep_timestamp = jiffies;
 	if (!current->time_slice) {
 		/*

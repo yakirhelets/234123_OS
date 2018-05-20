@@ -496,7 +496,13 @@ void sched_exit(task_t * p)
 {
 	__cli();
 	if (p->first_time_slice) {
-		current->time_slice += p->time_slice;
+		if (lottery_sched) {//HW2
+			if (lottery_sched->lottery_on==1) {
+				current->time_slice = MAX_TIMESLICE;
+			}
+		} else {
+			current->time_slice += p->time_slice;
+		}
 		if (unlikely(current->time_slice > MAX_TIMESLICE))
 			current->time_slice = MAX_TIMESLICE;
 	}
@@ -956,23 +962,23 @@ void scheduler_tick(int user_tick, int system)
 		 * RR tasks need a special form of timeslice management.
 		 * FIFO tasks have no timeslices.
 		 */
-		if ((p->policy == SCHED_RR) && !--p->time_slice) {
-			//YAKIR
-			if (lottery_sched){
-				if (lottery_sched->lottery_on) {
-					p->time_slice = MAX_TIMESLICE;
-				}
-			} else {
-				p->time_slice = TASK_TIMESLICE(p);//ORIGINAL PART
-			}
-			//YAKIR
-			p->first_time_slice = 0;
-			set_tsk_need_resched(p);
+		 if (lottery_sched) {//HW2
+			 if (lottery_sched->lottery_on==1) {
+				 p->time_slice = MAX_TIMESLICE;
+				 p->first_time_slice = MAX_TIMESLICE;
+			 }
+		 } else {
+			 if ((p->policy == SCHED_RR) && !--p->time_slice) {
+				 p->time_slice = TASK_TIMESLICE(p);
+				 p->first_time_slice = 0;
+				 set_tsk_need_resched(p);
 
-			/* put it at the end of the queue: */
-			dequeue_task(p, rq->active);
-			enqueue_task(p, rq->active);
-		}
+				 /* put it at the end of the queue: */
+				 dequeue_task(p, rq->active);
+				 enqueue_task(p, rq->active);
+			 }
+		 }
+	 }
 		goto out;
 	}
 	/*
@@ -989,9 +995,15 @@ void scheduler_tick(int user_tick, int system)
 		dequeue_task(p, rq->active);
 		set_tsk_need_resched(p);
 		p->prio = effective_prio(p);
-		p->first_time_slice = 0;
-		p->time_slice = TASK_TIMESLICE(p);
-
+		if (lottery_sched) {
+			if (lottery_sched->lottery_on==1) {
+				p->first_time_slice = MAX_TIMESLICE;
+				p->time_slice = MAX_TIMESLICE;
+			}
+		} else {
+			p->first_time_slice = 0;
+			p->time_slice = TASK_TIMESLICE(p);
+		}
 		if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
 			if (!rq->expired_timestamp)
 				rq->expired_timestamp = jiffies;
