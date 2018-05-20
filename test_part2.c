@@ -110,6 +110,7 @@ bool test_log_lottery() {
 	   }
 	}
 	float final = ((float)count / LOG_SIZE);
+  printf("final=%lf\n", final);
 	if (!(final <= 0.33 && final >= 0.27)) {
 	   return false;
 	}

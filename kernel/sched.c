@@ -980,7 +980,6 @@ void scheduler_tick(int user_tick, int system)
 		 }
 	 }
 		goto out;
-	}
 	/*
 	 * The task was running during this tick - update the
 	 * time slice counter and the sleep average. Note: we
@@ -989,8 +988,9 @@ void scheduler_tick(int user_tick, int system)
 	 * it possible for interactive tasks to use up their
 	 * timeslices at their highest priority levels.
 	 */
-	if (p->sleep_avg)
+	if (p->sleep_avg) {
 		p->sleep_avg--;
+	}
 	if (!--p->time_slice) {
 		dequeue_task(p, rq->active);
 		set_tsk_need_resched(p);

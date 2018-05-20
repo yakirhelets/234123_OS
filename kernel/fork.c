@@ -29,6 +29,8 @@
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 
+#define MAX_TIMESLICE		(300 * HZ / 1000)//HW2
+
 /* The idle threads do not count.. */
 int nr_threads;
 
@@ -723,11 +725,22 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	 */
 	__save_flags(flags);
 	__cli();
-	if (!current->time_slice)
+	if (!current->time_slice) {
 		BUG();
-	p->time_slice = (current->time_slice + 1) >> 1;
-	p->first_time_slice = 1;
-	current->time_slice >>= 1;
+	}
+
+	if (lottery_sched) {//HW2
+		if (lottery_sched->lottery_on==1) {
+			p->time_slice = MAX_TIMESLICE;
+			p->first_time_slice = MAX_TIMESLICE;
+			current->time_slice = MAX_TIMESLICE;
+		} else {
+			p->time_slice = (current->time_slice + 1) >> 1;
+			p->first_time_slice = 1;
+			current->time_slice >>= 1;
+		}
+	}
+
 	p->sleep_timestamp = jiffies;
 	if (!current->time_slice) {
 		/*
@@ -735,7 +748,13 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * a single jiffy left from its timeslice. Taking the
 		 * runqueue lock is not a problem.
 		 */
-		current->time_slice = 1;
+		 if (lottery_sched) {//HW2
+			 if (lottery_sched->lottery_on==1) {
+				 current->time_slice = MAX_TIMESLICE;
+			 }
+		 } else {
+			 current->time_slice = 1;
+		 }
 		scheduler_tick(0,0);
 	}
 	__restore_flags(flags);
