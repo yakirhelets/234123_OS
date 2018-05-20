@@ -8,7 +8,7 @@
 #define SCHED_OTHER		0
 #define SCHED_FIFO		1
 #define SCHED_RR		2
-#define SCHED_LOTTERY		3
+#define SCHED_LOTTERY	3
 
 
 #define TEST_SIZE 1000
@@ -237,9 +237,9 @@ bool test_first_syscalling() {
 	ASSERT_TEST(start_orig_scheduler() == -1 && errno == EINVAL);
 	ASSERT_TEST(start_lottery_scheduler() == 0);
 	ASSERT_TEST(start_orig_scheduler() == 0);
-	ASSERT_TEST(set_max_tickets(1) == 0);
-	ASSERT_TEST(set_max_tickets(4) == 0);
-	ASSERT_TEST(set_max_tickets(5) == 0);
+	// ASSERT_TEST(set_max_tickets(1) == 0);
+	// ASSERT_TEST(set_max_tickets(4) == 0);
+	// ASSERT_TEST(set_max_tickets(5) == 0);
 
 	return true;
 }
@@ -264,6 +264,7 @@ bool test_second_syscalling() {
 
 	//sched lottery starts
 	ASSERT_TEST(start_lottery_scheduler() == 0);
+	ASSERT_TEST(set_max_tickets(150) == 0);
 
 	// simple success
 	ASSERT_TEST(enable_logging(3) == 0);
@@ -281,7 +282,7 @@ bool test_second_syscalling() {
 	ASSERT_TEST(log[0].next_priority == 79);
 	ASSERT_TEST(log[0].prev_policy == SCHED_LOTTERY);
 	ASSERT_TEST(log[0].next_policy == SCHED_LOTTERY);
-	// ASSERT_TEST(log[0].n_tickets == 132);
+	// ASSERT_TEST(log[0].n_tickets == 126);
 	ASSERT_TEST(log[1].prev == parent_pid);
 	ASSERT_TEST(log[1].next == first_child_pid);
 	ASSERT_TEST(log[1].prev_priority == 79);
@@ -397,11 +398,12 @@ bool test_second_syscalling() {
 
 int main() {
 	disable_logging();
+	start_orig_scheduler();
 
 	int test_child;
-	RUN_TEST_CHILD(test_child, test_enable_logging);
-	RUN_TEST_CHILD(test_child, test_disable_logging);
-	RUN_TEST_CHILD(test_child, test_get_logger_records);
+	// RUN_TEST_CHILD(test_child, test_enable_logging);
+	// RUN_TEST_CHILD(test_child, test_disable_logging);
+	// RUN_TEST_CHILD(test_child, test_get_logger_records);
 	// RUN_TEST_CHILD(test_child, enable_disable_stress_test);
 	RUN_TEST_CHILD(test_child, test_first_syscalling);
 	RUN_TEST_CHILD(test_child, test_second_syscalling);

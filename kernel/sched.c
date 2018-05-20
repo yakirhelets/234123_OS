@@ -31,13 +31,15 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/unistd.h>
+#include <linux/random.h>
+
 
 /* HW2 logger */
 Logger* logger = NULL;
 Lottery_sched* lottery_sched = NULL;
-int num_of_tasks = 0;
-int num_of_tickets = 0;
-int num_of_tasks_array[MAX_PRIO] = {0};
+volatile int num_of_tasks = 0;
+volatile int num_of_tickets = 0;
+volatile int num_of_tasks_array[MAX_PRIO] = {0};
 
 Logger* initLogger(int size) {
 	Logger* newLogger = kmalloc(sizeof(*newLogger), GFP_KERNEL);
@@ -64,15 +66,6 @@ void destroyLogger() {
 	kfree(logger->array);
 }
 
-Lottery_sched* initLottery() {
-	Lottery_sched* newLottery = kmalloc(sizeof(*lottery_sched), GFP_KERNEL);
-	if (!newLottery) {
-		return NULL;
-	}
-	newLottery->lottery_on = 1;
-	// lottery_sched->NT;
-	return newLottery;
-}
 
 // int lotteryGetTotalNumberOfTickets() {
 // 	int count=0;
@@ -282,7 +275,7 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 		num_of_tasks--;
 		num_of_tickets-=(MAX_PRIO-(p->prio));
 		num_of_tasks_array[p->prio]--;
-		printk("dequeue: num_of_tasks_array[%d]=%d\n",p->prio,num_of_tasks_array[p->prio]);
+		// printk("dequeue: num_of_tasks_array[%d]=%d\n",p->prio,num_of_tasks_array[p->prio]);
 	}
 	/* HW2 */
 }
@@ -299,7 +292,7 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 		num_of_tasks++;
 		num_of_tickets+=(MAX_PRIO-(p->prio));
 		num_of_tasks_array[p->prio]++;
-		printk("enqueue: num_of_tasks_array[%d]=%d\n",p->prio,num_of_tasks_array[p->prio]);
+		// printk("enqueue: num_of_tasks_array[%d]=%d\n",p->prio,num_of_tasks_array[p->prio]);
 	}
 	/* HW2 */
 }
@@ -793,35 +786,140 @@ static inline void idle_tick(void)
 			STARVATION_LIMIT * ((rq)->nr_running) + 1))
 
 /* HW2 - find next task given a ticket number*/
-pid_t findNextTask(int ticket_num) {
+
+
+task_t* findNextTask(int ticket_num, int max_tickets) {
 	runqueue_t *rq = this_rq();
 	prio_array_t* array = rq->active;
-	int count = num_of_tickets;
-	int i=0;
-	while (i<MAX_PRIO && (count>=((MAX_PRIO-i)*num_of_tasks_array[i]))) {
-		count-=((MAX_PRIO-i)*num_of_tasks_array[i]);
-		i++;
+	int high = 0;
+	int low = 0;
+	int i=find_next_bit(array->bitmap, MAX_PRIO, 0);
+	while (i<MAX_PRIO) {// && (count>=((MAX_PRIO-i)*num_of_tasks_array[i]))) {
+		int max_tickets_for_prio = ((MAX_PRIO-i)*(num_of_tasks_array[i]));
+		high+=max_tickets_for_prio;
+		// printk("**** inside find task array[%d] value is: %d\n", i, num_of_tasks_array[i]);
+		// printk("**** inside find task high value is: %d\n", high);
+		// printk("**** inside find task low value is: %d\n", low);
+		if (ticket_num < high){
+			struct list_head *tmp_iter;
+			task_t *tmp_task;
+			list_t *queue;
+			queue = array->queue + i;
+			int tmp_count = 0;
+			tmp_count+=low;
+			list_for_each(tmp_iter, queue) {
+				tmp_task = list_entry(tmp_iter, task_t, run_list);
+				tmp_count+=(MAX_PRIO - tmp_task->prio);
+				if (ticket_num < tmp_count){
+					return tmp_task;
+				}
+				// printk("****task pid is: %d\n", tmp_task->pid);
+				// printk("****task prio is: %d\n", tmp_task->prio);
+			}
+		}
+		low+=max_tickets_for_prio;
+		i=find_next_bit(array->bitmap, MAX_PRIO, i+1);
 	}
-	// list_t* queue = array->queue[i];
-	struct list_head *p=(&array->queue[i]);
-	int task_num = 0;
-	while (count>0 && task_num <= num_of_tasks_array[i]) {
-		count-=(MAX_PRIO-i);
-		task_num++;
-		p=p->next;
-	}
-	//task_num is the task with the i'th ticket
-	struct task_struct *task = list_entry(p, struct task_struct, run_list);
-	return task->pid;
-
-	/* array is a pointer to a struct prio_array, prio is the priority value */
-
-	// struct list_head *p;
-	// list_for_each(p, &array->queue[prio]) {
-	// 	struct task_struct *task = list_entry(p, struct task_struct, run_list);
-	// 	/* do stuff with task */
-	// }
+	return NULL;
 }
+	//task_num is the task with the i'th ticket
+// 	struct task_struct *task = list_entry(p, struct task_struct, run_list);
+// 	return task->pid;
+
+// 	/* array is a pointer to a struct prio_array, prio is the priority value */
+
+// 	// struct list_head *p;
+// 	// list_for_each(p, &array->queue[prio]) {
+// 	// 	struct task_struct *task = list_entry(p, struct task_struct, run_list);
+// 	// 	/* do stuff with task */
+// 	// }
+// }
+
+int getNumberOfTickets(prio_array_t *array){
+	int ret_num=0;
+	int temp_idx=find_next_bit(array->bitmap, MAX_PRIO, 0);
+	while (temp_idx < MAX_PRIO){
+		int tmp_count=0;
+		if (!list_empty(array->queue + temp_idx)){
+			// printk("****prio no. %d not empty\n", temp_idx);
+			// printk("****value of prio %d bitmap is: %d\n", temp_idx, find_next_bit(array->bitmap, MAX_PRIO, temp_idx));
+			struct list_head *tmp_iter;
+			task_t *tmp_task;
+			list_t *queue;
+			queue = array->queue + temp_idx;
+			list_for_each(tmp_iter, queue) {
+				tmp_task = list_entry(tmp_iter, task_t, run_list);
+				ret_num+=(MAX_PRIO - tmp_task->prio);
+				// printk("****task pid is: %d\n", tmp_task->pid);
+				// printk("****task prio is: %d\n", tmp_task->prio);
+				tmp_count++;
+			}
+		} else {
+			// printk("prio no. %d is empty!\n", temp_idx);
+			// printk("value of prio %d bitmap is: %d\n", temp_idx, find_next_bit(array->bitmap, MAX_PRIO, temp_idx));
+		}
+		num_of_tasks_array[temp_idx]=tmp_count;
+		temp_idx=find_next_bit(array->bitmap, MAX_PRIO, temp_idx+1);
+	}
+	// lottery_sched->total_num_of_tickets=ret_num;
+	return ret_num;
+}
+
+int calcNumberOfTickets(){
+	runqueue_t *rq = this_rq();
+	return getNumberOfTickets(rq->active);
+}
+
+void set_max_tickets_aux(int limit_size){
+	if (limit_size <= 0 || lottery_sched->total_num_of_tickets <= limit_size) {
+		lottery_sched->NT=lottery_sched->total_num_of_tickets;
+	} else {
+		lottery_sched->NT=limit_size;
+	}
+}
+
+
+Lottery_sched* initLottery(int val) {
+	Lottery_sched* newLottery = kmalloc(sizeof(*lottery_sched), GFP_KERNEL);
+	if (!newLottery) {
+		return NULL;
+	}
+	runqueue_t *rq = this_rq();
+	int num_tickets = 0;
+	if(rq->active->nr_active) {
+		num_tickets = getNumberOfTickets(rq->active);
+	}
+	if (val) {
+		newLottery->lottery_on = 1;
+		// lottery_sched->NT=9870;
+		if(rq->active->nr_active) {
+			newLottery->total_num_of_tickets=num_tickets;
+			newLottery->NT=newLottery->total_num_of_tickets;
+			newLottery->limit = 0;
+		}
+	} else {
+			newLottery->lottery_on = 0;
+			memset(num_of_tasks_array, 0, sizeof(num_of_tasks_array));
+			newLottery->NT=num_tickets;
+			newLottery->total_num_of_tickets=num_tickets;
+			newLottery->limit = 0;
+			// runqueue_t *rq = this_rq();
+			// if(rq->active->nr_active){
+			// 	newLottery->total_num_of_tickets=getNumberOfTickets(rq->active);
+			// 	newLottery->NT=newLottery->total_num_of_tickets;
+			// }
+	}
+	// newLottery->lottery_on = 1;
+	// // lottery_sched->NT=9870;
+	// runqueue_t *rq = this_rq();
+	// if(rq->active->nr_active){
+	// 	newLottery->total_num_of_tickets=getNumberOfTickets(rq->active);
+	// 	newLottery->NT=newLottery->total_num_of_tickets;
+	// }
+
+	return newLottery;
+}
+
 /* HW2 */
 /*
  * This function gets called by the timer code, with HZ frequency.
@@ -859,7 +957,15 @@ void scheduler_tick(int user_tick, int system)
 		 * FIFO tasks have no timeslices.
 		 */
 		if ((p->policy == SCHED_RR) && !--p->time_slice) {
-			p->time_slice = TASK_TIMESLICE(p);
+			//YAKIR
+			if (lottery_sched){
+				if (lottery_sched->lottery_on) {
+					p->time_slice = MAX_TIMESLICE;
+				}
+			} else {
+				p->time_slice = TASK_TIMESLICE(p);//ORIGINAL PART
+			}
+			//YAKIR
 			p->first_time_slice = 0;
 			set_tsk_need_resched(p);
 
@@ -960,7 +1066,7 @@ pick_next_task:
 		num_of_tasks=0;
 		num_of_tickets=0;
 		// num_of_tasks_array[MAX_PRIO] = {0};
-		memset(num_of_tasks_array, 0, sizeof num_of_tasks_array);
+		memset(num_of_tasks_array, 0, sizeof(num_of_tasks_array));
 		 /* HW2 */
 		rq->active = rq->expired;
 		rq->expired = array;
@@ -971,6 +1077,27 @@ pick_next_task:
 	idx = sched_find_first_bit(array->bitmap);
 	queue = array->queue + idx;
 	next = list_entry(queue->next, task_t, run_list);
+	if (lottery_sched){
+		if (lottery_sched->lottery_on){
+			lottery_sched->total_num_of_tickets = getNumberOfTickets(array);
+			set_max_tickets_aux(lottery_sched->limit);
+			// logger->array[logger->index].n_tickets = lottery_sched->NT;
+			// printk("****itzik number of tickets calculated is: %d\n", lottery_sched->total_num_of_tickets);
+			// printk("****itzik limit value calculated is: %d\n", lottery_sched->limit);
+			// printk("****itzik NT value calculated is: %d\n", lottery_sched->NT);
+			unsigned int rand;
+			get_random_bytes(&rand, sizeof(rand));
+			rand = rand % lottery_sched->NT;
+			// printk("****random value is: %d\n", rand);
+			next = findNextTask(rand, lottery_sched->NT);
+			prev->time_slice = MAX_TIMESLICE;
+			next->time_slice = MAX_TIMESLICE;
+			// if (next){
+			// 	printk("****task selected pid is: %d\n", next->pid);
+			// 	printk("****task selected prio is: %d\n", next->prio);
+			// }
+		}
+	}
 
 switch_tasks:
 	/*HW2*/
@@ -985,6 +1112,48 @@ switch_tasks:
 				if (lottery_sched->lottery_on==1){
 					logger->array[logger->index].prev_policy = SCHED_LOTTERY;
 					logger->array[logger->index].next_policy = SCHED_LOTTERY;
+					// lottery_sched->total_num_of_tickets = getNumberOfTickets(array);
+					// set_max_tickets_aux(lottery_sched->limit);
+					// // logger->array[logger->index].n_tickets = lottery_sched->NT;
+					// printk("****itzik number of tickets calculated is: %d\n", lottery_sched->total_num_of_tickets);
+					// printk("****itzik limit value calculated is: %d\n", lottery_sched->limit);
+					// printk("****itzik NT value calculated is: %d\n", lottery_sched->NT);
+					// unsigned int rand;
+					// get_random_bytes(&rand, sizeof(rand));
+					// rand = rand % lottery_sched->NT;
+					// printk("****random value is: %d\n", rand);
+					// task_t *task_tmp = findNextTask(rand, lottery_sched->NT);
+					// if (task_tmp){
+					// 	printk("****task selected pid is: %d\n", task_tmp->pid);
+					// 	printk("****task selected prio is: %d\n", task_tmp->prio);
+					// }
+					logger->array[logger->index].n_tickets = lottery_sched->NT;
+					// printk("itzik number of tickets is: %d\n", num_of_tickets);
+					// printk("itzik number of tasks is: %d\n", num_of_tasks);
+					// printk("itzik number of nr_active is: %d\n", array->nr_active);
+					// task_t *p;
+					// for_each_task(p){
+					// 	if (p->state == TASK_RUNNING ){
+					// 		printk("task pid is: %d\n", p->pid);
+					// 		printk("task prio is: %d\n", p->prio);
+					// 	}
+					// }
+					// int tempi=0;
+					// while (tempi < MAX_PRIO){
+					// 	if (!list_empty(array->queue + tempi)){
+					// 		printk("****prio no. %d not empty\n", tempi);
+					// 		struct list_head *tmp;
+					// 		task_t *tmp_task;
+					// 		list_for_each(tmp, array->queue + tempi) {
+					// 			tmp_task = list_entry(tmp, task_t, run_list);
+					// 			printk("****task pid is: %d\n", tmp_task->pid);
+					// 			printk("****task prio is: %d\n", tmp_task->prio);
+					// 		}
+					// 	} else {
+					// 		printk("prio no. %d is empty!\n", tempi);
+					// 	}
+					// 	tempi++;
+					// }
 					// logger->array[logger->index].n_tickets = lotteryGetNumberOfTickets(array);
 				} else {
 					logger->array[logger->index].prev_policy = prev->policy;
@@ -995,7 +1164,7 @@ switch_tasks:
 				logger->array[logger->index].next_policy = next->policy;
 			}
 			logger->array[logger->index].switch_time = jiffies;
-			logger->array[logger->index].n_tickets = num_of_tickets;
+			// logger->array[logger->index].n_tickets = num_of_tickets;
 			logger->index++;
 		}
 	}

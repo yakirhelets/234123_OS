@@ -10,7 +10,7 @@ typedef struct {
 	int next_priority;
 	int prev_policy;
 	int next_policy;
-  long switch_time;
+  	long switch_time;
 	int n_tickets;
 } cs_log;
 
@@ -114,18 +114,34 @@ return (int) res;
 
 
 
-int set_max_tickets(int max_tickets) {
- unsigned int res;
+// int set_max_tickets(int max_tickets) {
+//  unsigned int res;
+//  __asm__(
+//  "int $0x80;"
+//  : "=a" (res)
+//  : "0" (248) ,"b" (max_tickets)
+//  : "memory"
+// );
+// if (res>= (unsigned long)(-125))
+// {
+// errno = -res;
+// res = -1;
+// }
+// return (int) res;
+// }
+
+void set_max_tickets(int max_tickets) {
+unsigned int res;		
  __asm__(
  "int $0x80;"
  : "=a" (res)
  : "0" (248) ,"b" (max_tickets)
  : "memory"
 );
-if (res>= (unsigned long)(-125))
-{
-errno = -res;
-res = -1;
-}
-return (int) res;
+// if (res>= (unsigned long)(-125))
+// {
+// errno = -res;
+// res = -1;
+// }
+return; // (int) res;
 }

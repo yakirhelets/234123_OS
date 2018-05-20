@@ -27,6 +27,7 @@ extern unsigned long event;
 #include <linux/securebits.h>
 #include <linux/fs_struct.h>
 #include <linux/low-latency.h>
+#include <linux/random.h>
 
 struct exec_domain;
 
@@ -45,6 +46,7 @@ typedef struct {
 typedef struct {
 	int lottery_on;
 	int total_num_of_tickets;
+	int limit;
 	int NT;
 } Lottery_sched;
 
@@ -59,13 +61,15 @@ typedef struct {
 
 extern Logger* logger;
 extern Lottery_sched* lottery_sched;
-extern int num_of_tasks;
-extern int num_of_tickets;
-extern num_of_tasks_array[140];
+extern volatile int num_of_tasks;
+extern volatile int num_of_tickets;
+extern volatile int num_of_tasks_array[140];
 
 Logger* initLogger(int size);
 void destroyLogger(void);
-Lottery_sched* initLottery(void);
+int calcNumberOfTickets(void);
+void set_max_tickets_aux(int limit_size);
+Lottery_sched* initLottery(int val);
 // int lotteryGetTotalNumberOfTickets(prio_array_t *arr);
 
 /* HW2 logger */
@@ -159,7 +163,7 @@ extern unsigned long nr_uninterruptible(void);
 #define SCHED_OTHER		0
 #define SCHED_FIFO		1
 #define SCHED_RR		2
-#define SCHED_LOTTERY		3
+#define SCHED_LOTTERY	3
 
 struct sched_param {
 	int sched_priority;

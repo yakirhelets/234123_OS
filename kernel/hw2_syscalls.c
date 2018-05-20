@@ -43,8 +43,8 @@ int sys_disable_logging() {
 }
 
 int sys_get_logger_records(cs_log* user_mem) {
-	printk("current num of tasks: %d\n", num_of_tasks);
-	printk("current num of tickets: %d\n", num_of_tickets);
+	// printk("current num of tasks: %d\n", num_of_tasks);
+	// printk("current num of tickets: %d\n", num_of_tickets);
 	if (!logger || !user_mem) {
 		logger->index=0;
 		return (-ENOMEM);
@@ -62,16 +62,18 @@ int sys_get_logger_records(cs_log* user_mem) {
 }
 
 int sys_start_lottery_scheduler() {
-	printk("inside start lottery syscall\n");
+	// printk("inside start lottery syscall\n");
 
 	if(lottery_sched) {
 		if(lottery_sched->lottery_on==1) {
 			return (-EINVAL);
 		} else {
 			lottery_sched->lottery_on=1;
+			lottery_sched->total_num_of_tickets = calcNumberOfTickets();
+			set_max_tickets_aux(lottery_sched->limit);
 		}
 	} else {
-		lottery_sched=initLottery();
+		lottery_sched=initLottery(1);
 		if (!lottery_sched) {
 			return (-ENOMEM);
 		}
@@ -82,7 +84,7 @@ int sys_start_lottery_scheduler() {
 
 
 int sys_start_orig_scheduler() {
-	printk("inside start orig syscall\n");
+	// printk("inside start orig syscall\n");
 	if(lottery_sched) {
 		if(lottery_sched->lottery_on==0) {
 			return (-EINVAL);
@@ -90,21 +92,58 @@ int sys_start_orig_scheduler() {
 			lottery_sched->lottery_on=0;
 		}
 	} else {
-		lottery_sched=initLottery();
+		lottery_sched=initLottery(0);
 		if (!lottery_sched) {
 			return (-ENOMEM);
 		}
-		lottery_sched->lottery_on=0;
+		// lottery_sched->lottery_on=0;
+		return (-EINVAL);
 	}
 	return 0;
 }
 
 
-int sys_set_max_tickets(int max_tickets) {
-	if (max_tickets < 0) {
+// int sys_set_max_tickets(int max_tickets) {
+// 	if (!lottery_sched){
+// 		lottery_sched=initLottery(0);
+// 		if (!lottery_sched) {
+// 			return -1;
+// 		}
+// 	} 
+// 	lottery_sched->total_num_of_tickets = calcNumberOfTickets();
+// 	if (max_tickets <= 0 || lottery_sched->total_num_of_tickets <= max_tickets) {
+// 		lottery_sched->NT=lottery_sched->total_num_of_tickets;
+// 		if (max_tickets <= 0){
+// 			lottery_sched->limit = 0;
+// 		} else {
+// 			lottery_sched->limit = max_tickets;
+// 		}
+// 	} else {
+// 		lottery_sched->NT=max_tickets;
+// 		lottery_sched->limit = max_tickets;
+// 	}
+// 	return 0;
+// }
+
+
+void sys_set_max_tickets(int max_tickets) {
+	if (!lottery_sched){
+		lottery_sched=initLottery(0);
+		if (!lottery_sched) {
+			return;
+		}
+	} 
+	lottery_sched->total_num_of_tickets = calcNumberOfTickets();
+	if (max_tickets <= 0 || lottery_sched->total_num_of_tickets <= max_tickets) {
 		lottery_sched->NT=lottery_sched->total_num_of_tickets;
+		if (max_tickets <= 0){
+			lottery_sched->limit = 0;
+		} else {
+			lottery_sched->limit = max_tickets;
+		}
 	} else {
 		lottery_sched->NT=max_tickets;
+		lottery_sched->limit = max_tickets;
 	}
-	return 0;
+	return;
 }
