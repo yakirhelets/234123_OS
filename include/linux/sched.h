@@ -70,8 +70,6 @@ void destroyLogger(void);
 int calcNumberOfTickets(void);
 void set_max_tickets_aux(int limit_size);
 Lottery_sched* initLottery(int val);
-// int lotteryGetTotalNumberOfTickets(prio_array_t *arr);
-
 /* HW2 logger */
 
 /*
