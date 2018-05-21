@@ -230,16 +230,16 @@ bool test_first_syscalling() {
 	ASSERT_TEST(enable_logging(1) == -1 && errno == EINVAL);
 
 	ASSERT_TEST(start_lottery_scheduler() == 0);
-	// ASSERT_TEST(start_orig_scheduler() == 0);
+	ASSERT_TEST(start_orig_scheduler() == 0);
+	ASSERT_TEST(start_lottery_scheduler() == 0);
 	ASSERT_TEST(start_lottery_scheduler() == -1 && errno == EINVAL);
-	// ASSERT_TEST(start_lottery_scheduler() == 0);
 	ASSERT_TEST(start_orig_scheduler() == 0);
 	ASSERT_TEST(start_orig_scheduler() == -1 && errno == EINVAL);
 	ASSERT_TEST(start_lottery_scheduler() == 0);
 	ASSERT_TEST(start_orig_scheduler() == 0);
-	// ASSERT_TEST(set_max_tickets(1) == 0);
-	// ASSERT_TEST(set_max_tickets(4) == 0);
-	// ASSERT_TEST(set_max_tickets(5) == 0);
+	set_max_tickets(1);
+	set_max_tickets(4);
+	set_max_tickets(5);
 
 	return true;
 }
@@ -264,7 +264,7 @@ bool test_second_syscalling() {
 
 	//sched lottery starts
 	ASSERT_TEST(start_lottery_scheduler() == 0);
-	ASSERT_TEST(set_max_tickets(150) == 0);
+	set_max_tickets(150);
 
 	// simple success
 	ASSERT_TEST(enable_logging(3) == 0);
@@ -282,7 +282,7 @@ bool test_second_syscalling() {
 	ASSERT_TEST(log[0].next_priority == 79);
 	ASSERT_TEST(log[0].prev_policy == SCHED_LOTTERY);
 	ASSERT_TEST(log[0].next_policy == SCHED_LOTTERY);
-	// ASSERT_TEST(log[0].n_tickets == 126);
+	ASSERT_TEST(log[0].n_tickets == 126);
 	ASSERT_TEST(log[1].prev == parent_pid);
 	ASSERT_TEST(log[1].next == first_child_pid);
 	ASSERT_TEST(log[1].prev_priority == 79);
@@ -326,15 +326,15 @@ bool test_second_syscalling() {
 	ASSERT_TEST(log[1].next_policy == SCHED_RR);
 	ASSERT_TEST(log[0].switch_time <= log[1].switch_time);
 
-	// // if you don't pass this section, don't worry.
-	// ASSERT_TEST(log[2].prev == first_child_pid);
-	// ASSERT_TEST(log[2].next == parent_pid);
-	// ASSERT_TEST(log[2].prev_priority == 69);
-	// ASSERT_TEST(log[2].next_priority == 79);
-	// ASSERT_TEST(log[2].prev_policy == SCHED_FIFO);
-	// ASSERT_TEST(log[2].next_policy == SCHED_FIFO);
-	// ASSERT_TEST(log[2].switch_time <= log[0].switch_time);
-	// // section ends here
+	// if you don't pass this section, don't worry.
+	ASSERT_TEST(log[2].prev == first_child_pid);
+	ASSERT_TEST(log[2].next == parent_pid);
+	ASSERT_TEST(log[2].prev_priority == 69);
+	ASSERT_TEST(log[2].next_priority == 79);
+	ASSERT_TEST(log[2].prev_policy == SCHED_FIFO);
+	ASSERT_TEST(log[2].next_policy == SCHED_FIFO);
+	ASSERT_TEST(log[2].switch_time <= log[0].switch_time);
+	// section ends here
 
 	// NULL user_mem, when enable is of size 0
 	ASSERT_TEST(enable_logging(0) == 0);
@@ -401,9 +401,9 @@ int main() {
 	start_orig_scheduler();
 
 	int test_child;
-	// RUN_TEST_CHILD(test_child, test_enable_logging);
-	// RUN_TEST_CHILD(test_child, test_disable_logging);
-	// RUN_TEST_CHILD(test_child, test_get_logger_records);
+	RUN_TEST_CHILD(test_child, test_enable_logging);
+	RUN_TEST_CHILD(test_child, test_disable_logging);
+	RUN_TEST_CHILD(test_child, test_get_logger_records);
 	// RUN_TEST_CHILD(test_child, enable_disable_stress_test);
 	RUN_TEST_CHILD(test_child, test_first_syscalling);
 	RUN_TEST_CHILD(test_child, test_second_syscalling);

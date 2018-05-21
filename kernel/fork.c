@@ -727,16 +727,17 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	if (!current->time_slice) {
 		BUG();
 	}
-	if (!(lottery_sched && lottery_sched->lottery_on==1)) {
+
+	if (is_lottery_on()==1) {//HW2
+		p->time_slice = MAX_TIMESLICE;
+		p->first_time_slice = MAX_TIMESLICE;
+		current->time_slice = MAX_TIMESLICE;
+	} else {
 		p->time_slice = (current->time_slice + 1) >> 1;
 		p->first_time_slice = 1;
 		current->time_slice >>= 1;
 	}
-	if (lottery_sched && lottery_sched->lottery_on==1) {
-		p->time_slice = MAX_TIMESLICE;
-		p->first_time_slice = MAX_TIMESLICE;
-		current->time_slice = MAX_TIMESLICE;
-	}
+
 	p->sleep_timestamp = jiffies;
 	if (!current->time_slice) {
 		/*
