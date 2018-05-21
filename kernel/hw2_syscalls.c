@@ -75,7 +75,8 @@ int sys_start_lottery_scheduler() {
 		}
 	}
 	//CALL SCHED() OR YIELD
-	yield();
+	// yield();
+	set_need_resched();
 	return 0;
 }
 

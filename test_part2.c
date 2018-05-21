@@ -15,7 +15,7 @@
 
 #define MAXSTRING 255
 #define TEST_SIZE 10000
-#define LOG_SIZE 250
+#define LOG_SIZE 500
 #define MAX_TICKETS 100
 
 bool test_start_lottery_orig_scheduler() {
@@ -27,12 +27,12 @@ bool test_start_lottery_orig_scheduler() {
 
 	struct sched_param param;
 	param.sched_priority = 30;
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_OTHER, &param) == -1);
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_FIFO, &param) == -1);
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_RR, &param) == -1);
-	// ASSERT_TEST(sched_setscheduler(getpid(), SCHED_LOTTERY, &param) == -1);
-  //
-	// ASSERT_TEST(start_lottery_scheduler() == -1 && errno == EINVAL);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_OTHER, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_FIFO, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_RR, &param) == -1);
+	ASSERT_TEST(sched_setscheduler(getpid(), SCHED_LOTTERY, &param) == -1);
+
+	ASSERT_TEST(start_lottery_scheduler() == -1 && errno == EINVAL);
 
 	ASSERT_TEST(start_orig_scheduler() == 0);
 
@@ -89,10 +89,17 @@ bool test_log_lottery() {
 	if (!stream_log) {
 	   printf("Cannot open stream_log.txt!");
 	}
+  // float p1_time=0;
+  // float p2_time=0;
 	for (i = 0; i < logger_records_size; i++) {
 	  fprintf(stream_log, "Log size: %d\n", logger_records_size);
 	  fprintf(stream_log, "log[%d]: prev = %d, next = %d, prev_priority = %d, next_priority ~%d~, prev_policy = %d, next_policy = %d, n_tickets = %d, switch_time = %d \n\n", i, log[i].prev, log[i].next, log[i].prev_priority, log[i].next_priority, log[i].prev_policy, log[i].next_policy, log[i].n_tickets, log[i].switch_time);
-	   fprintf(stream, "%d \n", log[i].next_priority);
+    // if (i>0) {
+      // u=u+(((float)log[i-1].switch_time)/((float)log[i].switch_time));
+      // fprintf(stream_log, "u[%d]=%lf\n", i, ((float)log[i-1].switch_time)/((float)log[i].switch_time));
+    // }
+    // fprintf(stream_log, "U[%d]=%lf\n", i, u);
+    fprintf(stream, "%d \n", log[i].next_priority);
 	}
 	fclose(stream);
 	fclose(stream_log);

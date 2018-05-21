@@ -1353,6 +1353,13 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	runqueue_t *rq;
 	task_t *p;
 
+	/* HW2 */
+	if (lottery_sched) {
+		if (lottery_sched->lottery_on==1) {
+			return retval;
+		}
+	}
+	/* HW2 */
 	if (!param || pid < 0)
 		goto out_nounlock;
 
