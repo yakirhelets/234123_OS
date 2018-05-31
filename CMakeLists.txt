@@ -3,4 +3,4 @@ project(HW3)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(HW3 Factory_test.cpp Factory.cxx Product.h)
+add_executable(HW3 test_din.cpp Factory.cxx Product.h)

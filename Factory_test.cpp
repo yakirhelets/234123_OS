@@ -309,5 +309,6 @@ int main(){
     startOpenCloseRetServiceTest();
     listStolenProductsTest();
     listAvailableProductsTest();
+    printf("passed");
     return 0;
 }
