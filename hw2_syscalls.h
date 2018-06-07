@@ -31,8 +31,6 @@ return (int) res;
 }
 
 
-
-
 int disable_logging() {
  unsigned int res;
  __asm__(
@@ -48,9 +46,6 @@ res = -1;
 }
 return (int) res;
 }
-
-
-
 
 
 int get_logger_records(cs_log* user_mem) {
@@ -70,9 +65,6 @@ return (int) res;
 }
 
 
-
-
-
 int start_lottery_scheduler() {
  unsigned int res;
  __asm__(
@@ -88,9 +80,6 @@ res = -1;
 }
 return (int) res;
 }
-
-
-
 
 
 int start_orig_scheduler() {
@@ -110,38 +99,14 @@ return (int) res;
 }
 
 
-
-
-
-
-// int set_max_tickets(int max_tickets) {
-//  unsigned int res;
-//  __asm__(
-//  "int $0x80;"
-//  : "=a" (res)
-//  : "0" (248) ,"b" (max_tickets)
-//  : "memory"
-// );
-// if (res>= (unsigned long)(-125))
-// {
-// errno = -res;
-// res = -1;
-// }
-// return (int) res;
-// }
-
 void set_max_tickets(int max_tickets) {
-unsigned int res;		
+unsigned int res;
  __asm__(
  "int $0x80;"
  : "=a" (res)
  : "0" (248) ,"b" (max_tickets)
  : "memory"
 );
-// if (res>= (unsigned long)(-125))
-// {
-// errno = -res;
-// res = -1;
-// }
-return; // (int) res;
+
+return;
 }

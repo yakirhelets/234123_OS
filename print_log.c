@@ -1,4 +1,3 @@
-
 #include <limits.h>
 #include <stdlib.h>
 #include <sched.h>
@@ -18,6 +17,7 @@
 #define LOG_SIZE 500
 #define MAX_TICKETS 140
 
+/* a function that prints the scheuler log */
 bool print_log(int TEST_SIZE) {
   disable_logging();
 	start_orig_scheduler();
@@ -48,32 +48,14 @@ bool print_log(int TEST_SIZE) {
 	ASSERT_TEST(disable_logging() == 0);
 	ASSERT_TEST(start_orig_scheduler() == 0);
 	int logger_records_size = get_logger_records(log);
-	FILE *stream = fopen("stream.txt", "w");
-	if (!stream) {
-	   printf("Cannot open stream.txt!\n");
-	   return false;
-	}
-	FILE *stream_log_pdf = fopen("stream_log_pdf.txt", "w");
-	if (!stream_log_pdf) {
-	   printf("Cannot open stream_log_pdf.txt!");
-	}
-  FILE *stream_log_csv = fopen("stream_log_csv.txt", "w");
-	if (!stream_log_csv) {
-	   printf("Cannot open stream_log_csv.txt!");
-	}
   FILE *graph = fopen("graph.txt", "w");
   if (!graph) {
      printf("Cannot open graph.txt!");
   }
   float p1_time=0;
   float p2_time=0;
-  fprintf(stream, "p1 pid: %d\n", parent_pid);
-  fprintf(stream, "p2 pid: %d\n", child_pid);
+
 	for (i = 0; i < logger_records_size; i++) {
-	  fprintf(stream, "Log size: %d\n", logger_records_size);
-	  fprintf(stream_log_pdf, "log[%d]: prev = %d, next = %d, prev_priority = %d, next_priority = %d, prev_policy = %d, next_policy = %d, n_tickets = %d, switch_time = %d \n\n", i, log[i].prev, log[i].next, log[i].prev_priority, log[i].next_priority, log[i].prev_policy, log[i].next_policy, log[i].n_tickets, log[i].switch_time);
-    fprintf(stream_log_csv, "%d, %d, %d, %d, %d, %d, %d, %d \n", log[i].prev, log[i].next, log[i].prev_priority, log[i].next_priority, log[i].prev_policy, log[i].next_policy, log[i].n_tickets, log[i].switch_time);
-    fprintf(stream, "%d \n", log[i].next_priority);
     if (parent_pid==(int)log[i].next) {
       if (p1_time<log[i].switch_time) {
         p1_time=log[i].switch_time;
@@ -86,28 +68,8 @@ bool print_log(int TEST_SIZE) {
     }
 	}
   fprintf(graph, "%d , %lf \n", TEST_SIZE,(float)p1_time/(float)p2_time);
-	fclose(stream);
-	fclose(stream_log_pdf);
-  fclose(stream_log_csv);
   fclose(graph);
-	stream = fopen("stream.txt", "r");
-	if (!stream) {
-	   printf("Cannot open stream.txt!\n");
-	   return false;
-	}
-	char line[3];
-	int count = 0;
-	while (fgets(line, MAXSTRING, stream)) {
-	   if (!strcmp(line, "90 \n")) {
-
-	      count++;
-	   }
-	}
-	float final = ((float)count / LOG_SIZE);
   printf("%d\n", TEST_SIZE);
-	if (!(final <= 0.33 && final >= 0.27)) {
-	   return false;
-	}
 	return true;
 }
 

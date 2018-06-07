@@ -44,7 +44,9 @@ int sys_disable_logging() {
 
 int sys_get_logger_records(cs_log* user_mem) {
 	if (!logger || !user_mem) {
-		logger->index=0;
+		if (logger) {//FIX
+				logger->index=0;
+		}//FIX
 		return (-ENOMEM);
 	}
 	if (logger->size == 0) {
@@ -74,8 +76,6 @@ int sys_start_lottery_scheduler() {
 			return (-ENOMEM);
 		}
 	}
-	//CALL SCHED() OR YIELD
-	// yield();
 	set_need_resched();
 	return 0;
 }
