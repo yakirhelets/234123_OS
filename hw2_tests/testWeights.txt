@@ -1,0 +1,13 @@
+Tests weights
+--------------
+Test21 - 11
+Test22 - 13
+Test23 - 13
+Test24 - 11
+Test25 - 13
+Test26 - 13
+Test27 - 0
+Test28 - 13
+Test29 - 13
+
+Total = 0.15*hw2_description.pdf + 0.85*tests_grades

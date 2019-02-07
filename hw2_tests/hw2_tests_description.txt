@@ -1,0 +1,58 @@
+***test21
+Tests return values of all logger system calls with illegal parameters
+- enable_logging with size = -1
+- enable_logging when already enabled
+- disable_logging when already disabled
+- get_logger_records with user_mem = NULL
+- get_logger_records with user_mem = 0xf0000000 (kernel space address) 
+
+***test22
+Tests the logger's system calls:
+- enable_logging with size = 10
+- enable_logging with size = 0
+- enable_logging and then disable_logging
+- enable_logging with size = 100, 
+  forking up to 200 processes and check that the logger is full and correct.
+
+***test23
+Tests the logger's system calls:
+- Testing cross processes logger functionality
+- Performing stress tests
+
+***test24
+Tests the scheduler's system calls with illegal scenarios:
+- start_orig_scheduler when already enabled
+- start_lottery_scheduler when already enabled
+
+***test25
+Tests the scheduler functionality:
+- start_lottery_scheduler
+- start_orig_scheduler
+- set_max_tickets to 1 and testing that indeed only 
+  the process with the best priority is able to run
+- set_max_tickets to -1 and testing that the limit has canceled.
+
+
+***test26
+Tests the scheduler functionality:
+- start_lottery_scheduler and start_orig_scheduler 
+  alternately for 100 times 
+- forking up to 100000 processes
+
+***************************** Didn't grade ************************************
+***test27
+Tests sched_setscheduler:
+- Testing the sched_setscheduler under the original scheduler
+- Testing the sched_setscheduler under the lottery scheduler 
+***************************** Didn't grade ************************************
+
+***test28
+Tests originated FIFO processes:
+- Testing that an originated FIFO process have 
+  a quantum under the lottery scheduler
+
+***test29
+Tests that the original behavior of effective prio still holds
+
+Note: If a test timed out, it means that something didn't went as expected.
+(i.e it doesn't necessarily mean you have an infinite loop or a deadlock)
